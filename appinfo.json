@@ -1,0 +1,27 @@
+{
+    "appKeys": {
+        "dummy": 0
+    },
+    "capabilities": [
+        ""
+    ],
+    "companyName": "Blaid inc.",
+    "enableMultiJS": true,
+    "longName": "mothers_watchface",
+    "projectType": "native",
+    "resources": {
+        "media": []
+    },
+    "sdkVersion": "3",
+    "shortName": "mothers_watchface",
+    "targetPlatforms": [
+        "aplite",
+        "basalt",
+        "chalk"
+    ],
+    "uuid": "c228e2e1-e93c-4451-b45a-b71eb5900fc7",
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": true
+    }
+}
