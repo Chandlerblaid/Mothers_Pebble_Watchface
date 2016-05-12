@@ -3,14 +3,47 @@
         "dummy": 0
     },
     "capabilities": [
-        ""
+        "location",
+        "configurable",
+        "health"
     ],
     "companyName": "Blaid inc.",
     "enableMultiJS": true,
     "longName": "mothers_watchface",
     "projectType": "native",
     "resources": {
-        "media": []
+        "media": [
+            {
+                "file": "fonts/bitham-medium-numbers.ttf",
+                "name": "HAM_18",
+                "targetPlatforms": null,
+                "type": "font"
+            },
+            {
+                "file": "images/purple_heart_2_by_chucky15072009-d3byxcl.png",
+                "name": "PURPLE_HEART",
+                "targetPlatforms": null,
+                "type": "bitmap"
+            },
+            {
+                "file": "fonts/Perfect DOS VGA 437.ttf",
+                "name": "PERFECT_DOS_18",
+                "targetPlatforms": null,
+                "type": "font"
+            },
+            {
+                "file": "fonts/Perfect DOS VGA 437.ttf",
+                "name": "PERFECT_DOS_42",
+                "targetPlatforms": null,
+                "type": "font"
+            },
+            {
+                "file": "images/background.png",
+                "name": "BACK_BITMAP",
+                "targetPlatforms": null,
+                "type": "bitmap"
+            }
+        ]
     },
     "sdkVersion": "3",
     "shortName": "mothers_watchface",
