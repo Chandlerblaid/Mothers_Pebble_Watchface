@@ -1,15 +1,36 @@
 #include <pebble.h>
 
-// #define PURPLE #551A8B
-
 static Window *window;
 static TextLayer *time_layer, *text_layer1, *to_layer, *from_layer, *date_layer;
-static BitmapLayer *background_layer;
-static GBitmap *background_bitmap;
+static BitmapLayer *background_layer, *bt_icon_layer;
+static GBitmap *background_bitmap, *bt_icon_bitmap;
 static GFont time_font, date_font;
+static int battery_level;
+static Layer *battery_layer;
+static bool charging;
+
+static void battery_callback(BatteryChargeState charge) {
+  // Grab new battery level
+  battery_level = charge.charge_percent;
+  
+  charging = charge.is_charging;
+  
+  // Update meter by setting the layer as dirty(set it to be updated asap)
+  layer_mark_dirty(battery_layer);
+}
+
+static void bluetooth_callback(bool connected) {
+  // Show bt icon if disconnected
+  layer_set_hidden(bitmap_layer_get_layer(bt_icon_layer), connected);
+
+  if(!connected) {
+    // Send a vibrating alert
+    vibes_double_pulse();
+  }
+}
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-//   text_layer_set_text(text_layer, "Select");
+//   text_layer_set_text(text_layer, "McWho?");
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -24,6 +45,34 @@ static void click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
   window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+}
+
+static void battery_update_proc(Layer *layer, GContext *ctx) {
+  GRect bounds = layer_get_bounds(layer); 
+  
+  // Find the width of the bar
+  int width = (int)(float)( ((float)battery_level / 100.0F) * 114.0F );
+
+  // Draw the background of the bar
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+
+  // Draw the bar
+  if (charging) {
+    graphics_context_set_fill_color(ctx, GColorGreen);  
+  } 
+  else {
+    if (battery_level > 50) { 
+      graphics_context_set_fill_color(ctx, GColorWhite);
+    } 
+    else if (battery_level <= 50 && battery_level > 10){
+      graphics_context_set_fill_color(ctx, GColorYellow);
+    }
+    else {
+      graphics_context_set_fill_color(ctx, GColorRed);
+    }
+  } 
+  graphics_fill_rect(ctx, GRect(0, 0, width, bounds.size.h), 0, GCornerNone);
 }
 
 static void update_time() {
@@ -87,6 +136,21 @@ static void window_load(Window *window) {
   // Create Bitmap Layer to hold the Bitmap
   background_layer = bitmap_layer_create(purple_heart_bounds);
   
+  // Create battery meter Layer
+  battery_layer = layer_create(GRect(30, 60, 115, 2));
+  layer_set_update_proc(battery_layer, battery_update_proc);
+  
+  // Create the Bluetooth icon GBitmap
+  bt_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BT_ICON);
+  
+  // Create the BitmapLayer to display the GBitmap
+  bt_icon_layer = bitmap_layer_create(GRect(20, (11*(bounds.size.h+1))/16, 30, 30));
+  bitmap_layer_set_bitmap(bt_icon_layer, bt_icon_bitmap);
+  layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(bt_icon_layer));
+  
+  // Show the correct state of the BT connection from the start
+  bluetooth_callback(connection_service_peek_pebble_app_connection());
+
   // Customize time layout
   text_layer_set_background_color(time_layer, GColorClear);
   text_layer_set_text_color(time_layer, GColorBlack);
@@ -133,6 +197,9 @@ static void window_load(Window *window) {
   // Add date layer as a child to the window's root layer
   layer_add_child(window_layer, text_layer_get_layer(date_layer));
   
+  // Add to battery layer to Window
+  layer_add_child(window_layer, battery_layer);
+  
   // Add time layer as a child to the window's root layer
   layer_add_child(window_layer, text_layer_get_layer(time_layer));
 }
@@ -150,6 +217,13 @@ static void window_unload(Window *window) {
   // Destroy to and from layers
   text_layer_destroy(to_layer);
   text_layer_destroy(from_layer);
+  
+  // Destroy the battery layer
+  layer_destroy(battery_layer);
+  
+  // Destroy the bluetooth icon and layer
+  gbitmap_destroy(bt_icon_bitmap);
+  bitmap_layer_destroy(bt_icon_layer);
   
   // Destroy/unload the custom font
   fonts_unload_custom_font(time_font);
@@ -185,6 +259,17 @@ static void init(void) {
   
   // Register with TickTimerService
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+
+  // Register for battery level updates
+  battery_state_service_subscribe(battery_callback);
+  
+  // Ensure battery level is displayed from the start
+  battery_callback(battery_state_service_peek());
+  
+  // Register for Bluetooth connection updates
+  connection_service_subscribe((ConnectionHandlers) {
+    .pebble_app_connection_handler = bluetooth_callback
+  });
 }
 
 static void deinit(void) {
